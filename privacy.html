@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LogoLens 隐私政策</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body class="document-shell">
+    <main class="app">
+      <header class="hero">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <img src="icons/icon32.png" alt="" />
+          </div>
+          <div>
+            <h1>隐私政策</h1>
+            <p>LogoLens</p>
+          </div>
+        </div>
+      </header>
+      <section class="document-card prose">
+        <p class="document-lead"><strong>LogoLens 不会收集、存储用户数据，也不会将浏览数据上传到作者或任何自有服务器。</strong></p>
+        <p>本插件仅在用户主动点击浏览器工具栏图标时，读取当前活动标签页的 DOM 和页面元数据，以提取 Logo、Favicon 等图片地址。提取和分类逻辑在本地完成。</p>
+        <p>为展示或下载页面声明的图片，浏览器会连接对应资源的原始服务器；扫描 Web App Manifest 时也会请求当前页面声明的 Manifest 地址。上述请求可能向资源服务器暴露常规网络信息，例如 IP 地址、User-Agent 和请求中的 URL 参数。</p>
+        <h2>权限说明</h2>
+        <ul>
+          <li><code>activeTab</code>：仅在点击插件时访问当前页面。</li>
+          <li><code>scripting</code>：在当前页面运行一次资源提取脚本。</li>
+          <li><code>downloads</code>：将用户选择的图片保存到本地。</li>
+        </ul>
+        <p class="document-footer">
+          作者：<a href="https://everettlabs.dev/" target="_blank" rel="noopener">everettlabs</a>
+          · <a href="https://everettlabs.dev/coffee/" target="_blank" rel="noopener">支持咖啡</a>
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

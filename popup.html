@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LogoLens</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body class="popup-shell">
+    <main class="app">
+      <header class="hero">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <img src="icons/icon32.png" alt="" />
+          </div>
+          <div>
+            <h1>LogoLens</h1>
+            <p>网页品牌资产提取器</p>
+          </div>
+        </div>
+        <span id="count" class="count" aria-live="polite">扫描中</span>
+      </header>
+
+      <section id="site" class="site-card hidden">
+        <div class="site-copy">
+          <span class="site-eyebrow">当前页面</span>
+          <strong id="siteTitle"></strong>
+          <span id="siteHost"></span>
+        </div>
+        <button id="rescan" class="icon-button" type="button" aria-label="重新扫描当前页面" title="重新扫描">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7" />
+          </svg>
+        </button>
+      </section>
+
+      <nav class="tabs" aria-label="资源类型">
+        <button class="tab active" type="button" data-filter="all" aria-pressed="true">全部 <span id="allCount">0</span></button>
+        <button class="tab" type="button" data-filter="logo" aria-pressed="false">Logo <span id="logoCount">0</span></button>
+        <button class="tab" type="button" data-filter="favicon" aria-pressed="false">Favicon <span id="faviconCount">0</span></button>
+      </nav>
+
+      <section id="status" class="status" role="status" aria-live="polite" aria-atomic="true">
+        <div class="spinner"></div>
+        <p>正在分析当前页面…</p>
+      </section>
+
+      <section id="results" class="results hidden" aria-label="提取结果"></section>
+
+      <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+
+      <footer id="footer" class="footer hidden">
+        <div class="footer-actions">
+          <button id="copyAll" class="secondary" type="button">复制当前列表</button>
+          <button id="downloadAll" class="primary" type="button">下载当前列表</button>
+        </div>
+        <div class="footer-meta">
+          <span>由 <a href="https://everettlabs.dev/" target="_blank" rel="noopener" class="author">everettlabs</a> 制作</span>
+          <a href="https://everettlabs.dev/coffee/" target="_blank" rel="noopener" class="coffee">支持项目</a>
+        </div>
+      </footer>
+    </main>
+
+    <template id="cardTemplate">
+      <article class="asset-card">
+        <button class="preview-wrap" type="button">
+          <img class="preview" alt="" />
+          <span class="type-badge"></span>
+        </button>
+        <div class="asset-info">
+          <strong class="asset-name"></strong>
+          <span class="asset-meta"></span>
+          <span class="asset-url"></span>
+        </div>
+        <div class="actions">
+          <button class="copy-button" type="button" title="复制链接">复制</button>
+          <button class="download-button" type="button" title="下载图片">下载</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="extractor.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
