@@ -140,4 +140,4 @@ node --check popup.js
 
 本项目基于 [MIT License](LICENSE) 开源。
 
-作者：[everettlabs](https://everettlabs.dev/) · [支持项目](https://everettlabs.dev/coffee/)
+作者：[everettlabs](https://everettlabs.dev/) · 邮箱：[everett7623@gmail.com](mailto:everett7623@gmail.com) · [支持项目](https://everettlabs.dev/coffee/)

@@ -13,5 +13,6 @@ LogoLens 不会收集、存储用户数据，也不会将浏览数据上传到�
 ## 作者
 
 - 作者：everettlabs
+- 邮箱：[everett7623@gmail.com](mailto:everett7623@gmail.com)
 - 主页：https://everettlabs.dev/
 - 支持：https://everettlabs.dev/coffee/
