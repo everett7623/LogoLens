@@ -8,22 +8,58 @@ async function extractAssets() {
   const MAX_SVG_NODES = MAX_ASSETS;
   const MAX_SVG_EL_LENGTH = 50000;
   const MAX_SVG_DIM = 800;
+  const MAX_SVG_USE_PASSES = 3;
+  const MAX_BG_DIM = 400;
+  const MAX_SHADOW_ROOTS = 50;
+  const MAX_SHADOW_SCAN_NODES = 3000;
   const MAX_MANIFEST_LENGTH = 500000;
   const MAX_REMOTE_URL_LENGTH = 8192;
   const MAX_DATA_URL_LENGTH = 200000;
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const XLINK_NS = "http://www.w3.org/1999/xlink";
 
   const absolute = (value, base = document.baseURI) => {
     if (typeof value !== "string" || !value.trim()) return null;
     try { return new URL(value, base).href; } catch { return null; }
   };
 
+  // 广度优先收集 document 与开放 shadow root，受根数量和扫描节点数双重限制。
+  const roots = (() => {
+    const list = [document];
+    const queue = [document];
+    let scanned = 0;
+    while (queue.length) {
+      const root = queue.shift();
+      let nodes;
+      try { nodes = root.querySelectorAll("*"); } catch { continue; }
+      for (const node of nodes) {
+        if (scanned >= MAX_SHADOW_SCAN_NODES || list.length >= MAX_SHADOW_ROOTS) return list;
+        scanned += 1;
+        const shadow = node.shadowRoot;
+        if (shadow) {
+          list.push(shadow);
+          queue.push(shadow);
+        }
+      }
+    }
+    return list;
+  })();
+
   const eachLimited = (selector, callback, limit = MAX_NODES_PER_SOURCE) => {
     let index = 0;
-    for (const node of document.querySelectorAll(selector)) {
-      if (index >= limit) break;
-      callback(node, index);
-      index += 1;
+    for (const root of roots) {
+      let nodes;
+      try { nodes = root.querySelectorAll(selector); } catch { continue; }
+      for (const node of nodes) {
+        if (index >= limit) return;
+        callback(node, index);
+        index += 1;
+      }
     }
+  };
+
+  const isVisible = (style) => {
+    return style.display !== "none" && style.visibility !== "hidden" && parseFloat(style.opacity) !== 0;
   };
 
   const seen = new Set();
@@ -67,18 +103,20 @@ async function extractAssets() {
     return srcsetMeta(img.srcset);
   };
 
+  // 登记成功返回 true，便于调用方按实际入选项编号。
   const add = (url, type, label, meta = "", area = 0, base = document.baseURI) => {
-    if (!(type in typeCounts) || typeCounts[type] >= MAX_ITEMS_PER_TYPE) return;
+    if (!(type in typeCounts) || typeCounts[type] >= MAX_ITEMS_PER_TYPE) return false;
     const resolved = absolute(url, base);
-    if (!resolved || !/^https?:|^data:image\//i.test(resolved)) return;
+    if (!resolved || !/^https?:|^data:image\//i.test(resolved)) return false;
     const maxLength = resolved.startsWith("data:") ? MAX_DATA_URL_LENGTH : MAX_REMOTE_URL_LENGTH;
-    if (resolved.length > maxLength) return;
+    if (resolved.length > maxLength) return false;
     const key = resolved.split("#")[0];
-    if (seen.has(key)) return;
+    if (seen.has(key)) return false;
     seen.add(key);
     typeCounts[type] += 1;
     if (!area) area = type === "logo" ? 100000 : 100;
     items.push({ url: resolved, type, label, meta, area });
+    return true;
   };
 
   const iconRels = [
@@ -98,7 +136,8 @@ async function extractAssets() {
     });
   }
 
-  add("/favicon.ico", "favicon", "默认 Favicon", "ICO");
+  // 默认 favicon 相对站点根目录解析，不受页面 <base href> 影响。
+  add("/favicon.ico", "favicon", "默认 Favicon", "ICO", 0, location.origin);
 
   let jsonNodes = 0;
   const addStructuredImage = (value, label) => {
@@ -163,25 +202,93 @@ async function extractAssets() {
     add(url, "logo", (img.alt || img.title || "网站 Logo").trim(), info.meta, info.area);
   });
 
+  const backgroundSelectors = [
+    '[class*="logo" i]', '[id*="logo" i]',
+    '[class*="brand" i]', '[id*="brand" i]',
+    'header a', 'nav a',
+    'a[href="/"]', 'a[href="/home"]', 'a[aria-label*="home" i]'
+  ];
+
+  eachLimited(backgroundSelectors.join(","), (node) => {
+    try {
+      const style = getComputedStyle(node);
+      if (!isVisible(style)) return;
+      const raw = style.backgroundImage;
+      if (!raw || raw === "none") return;
+      const match = raw.match(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)\s]*))\s*\)/i);
+      const value = ((match && (match[1] || match[2] || match[3])) || "").trim();
+      if (!value) return;
+      const box = node.getBoundingClientRect();
+      if (box.width <= 0 || box.height <= 0) return;
+      // 过大的盒子通常是横幅或装饰背景，不是 logo。
+      if (box.width > MAX_BG_DIM || box.height > MAX_BG_DIM) return;
+      const width = Math.round(box.width);
+      const height = Math.round(box.height);
+      add(value, "logo", "CSS 背景 Logo", `${width} × ${height}`, width * height);
+    } catch {}
+  });
+
+  // data: URL 是独立文档，指向页面 sprite 的 <use> 会失效，需要把被引用节点内联进副本。
+  const inlineUseRefs = (clone, root) => {
+    const source = root && typeof root.getElementById === "function" ? root : document;
+    const inlined = new Set();
+    let defs = null;
+    for (let pass = 0; pass < MAX_SVG_USE_PASSES; pass += 1) {
+      let added = 0;
+      for (const use of clone.querySelectorAll("use")) {
+        const raw = (use.getAttribute("href") || use.getAttribute("xlink:href") || "").trim();
+        // 指向外部 sprite 文件的引用无法内联，整个 SVG 放弃。
+        if (!raw.startsWith("#")) return false;
+        const id = raw.slice(1);
+        if (!id) return false;
+        use.setAttribute("href", raw);
+        use.removeAttributeNS(XLINK_NS, "href");
+        if (inlined.has(id)) continue;
+        inlined.add(id);
+        let escaped;
+        try { escaped = `#${CSS.escape(id)}`; } catch { return false; }
+        if (clone.id === id || clone.querySelector(escaped)) continue;
+        const target = source.getElementById(id);
+        if (!target || target.namespaceURI !== SVG_NS) return false;
+        if (!defs) {
+          defs = document.createElementNS(SVG_NS, "defs");
+          clone.insertBefore(defs, clone.firstChild);
+        }
+        defs.append(target.cloneNode(true));
+        added += 1;
+      }
+      if (!added) break;
+    }
+    return true;
+  };
+
   const svgSelectors = [
     'header svg', 'nav svg',
     'svg[class*="logo" i]', '[class*="logo" i] svg', '[id*="logo" i] svg',
     'a[href="/"] svg', 'a[href="/home"] svg', 'a[aria-label*="home" i] svg'
   ];
 
-  eachLimited(svgSelectors.join(","), (svg, index) => {
+  // 被过滤或去重的 SVG 不占用编号，避免结果里出现跳号的“内嵌 SVG Logo 3”。
+  let svgIndex = 0;
+  eachLimited(svgSelectors.join(","), (svg) => {
     try {
       const style = getComputedStyle(svg);
       const box = svg.getBoundingClientRect();
-      if (style.display === "none" || style.visibility === "hidden" || parseFloat(style.opacity) === 0) return;
+      if (!isVisible(style)) return;
       if (box.width <= 0 || box.height <= 0 || box.width > MAX_SVG_DIM || box.height > MAX_SVG_DIM) return;
       if (svg.outerHTML.length > MAX_SVG_EL_LENGTH) return;
       const clone = svg.cloneNode(true);
-      if (!clone.getAttribute("xmlns")) clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-      const data = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(clone.outerHTML)}`;
+      if (!inlineUseRefs(clone, svg.getRootNode())) return;
+      if (!clone.getAttribute("xmlns")) clone.setAttribute("xmlns", SVG_NS);
+      const markup = clone.outerHTML;
+      // 内联 sprite 后体积会增大，需要重新校验上限。
+      if (markup.length > MAX_SVG_EL_LENGTH) return;
+      const data = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
       const width = Math.round(box.width);
       const height = Math.round(box.height);
-      add(data, "logo", `内嵌 SVG Logo ${index + 1}`, `${width} × ${height}`, width * height);
+      if (add(data, "logo", `内嵌 SVG Logo ${svgIndex + 1}`, `${width} × ${height}`, width * height)) {
+        svgIndex += 1;
+      }
     } catch {}
   }, MAX_SVG_NODES);
 

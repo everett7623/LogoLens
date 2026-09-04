@@ -1,6 +1,7 @@
-const state = { assets: [], filter: "all", site: null, scanning: false };
+const state = { assets: [], filter: "all", site: null };
 let scanVersion = 0;
 let toastTimer = null;
+const flashTimers = new WeakMap();
 
 const $ = (selector) => document.querySelector(selector);
 const statusEl = $("#status");
@@ -133,7 +134,6 @@ function showError(message, fatal = true) {
 }
 
 function setScanning(scanning) {
-  state.scanning = scanning;
   const button = $("#rescan");
   button.disabled = scanning;
   button.classList.toggle("is-spinning", scanning);
@@ -154,12 +154,22 @@ function hideToast() {
   $("#toast").classList.add("hidden");
 }
 
+// 连点时复用同一个计时器，避免把临时文案误存成原始文案导致按钮文字卡死。
+function flashButton(button, message, duration = 1000) {
+  const running = flashTimers.get(button);
+  if (running) clearTimeout(running);
+  else button.dataset.label = button.textContent;
+  button.textContent = message;
+  flashTimers.set(button, setTimeout(() => {
+    button.textContent = button.dataset.label;
+    flashTimers.delete(button);
+  }, duration));
+}
+
 async function copyUrl(url, button) {
   try {
     await navigator.clipboard.writeText(url);
-    const original = button.textContent;
-    button.textContent = "已复制";
-    setTimeout(() => { button.textContent = original; }, 1000);
+    flashButton(button, "已复制");
   } catch {
     showNotice("复制失败，请检查剪贴板权限后重试。", "error");
   }
@@ -170,9 +180,7 @@ async function copyAll() {
   if (!assets.length) return;
   try {
     await navigator.clipboard.writeText(assets.map((asset) => asset.url).join("\n"));
-    const button = $("#copyAll");
-    button.textContent = "已复制";
-    setTimeout(() => { button.textContent = "复制当前列表"; }, 1200);
+    flashButton($("#copyAll"), "已复制", 1200);
   } catch {
     showNotice("复制失败，请检查剪贴板权限后重试。", "error");
   }
