@@ -13,6 +13,7 @@ LogoLens 是一个零依赖的 Chrome Manifest V3 扩展。它只在你点击扩
 ## 功能亮点
 
 - 自动发现常见 Logo 图片、内嵌 SVG、Schema.org 图片及社交分享图。
+- 覆盖 CSS 背景图 Logo、引用 sprite 的内嵌 SVG，以及开放 shadow root 内的资源。
 - 提取 Favicon、Apple Touch Icon、Mask Icon 和 Web App Manifest 图标。
 - 按“全部 / Logo / Favicon”筛选结果，并展示格式、尺寸与资源地址。
 - 支持打开原图、复制单个链接、复制当前列表、单项下载和批量下载。
@@ -21,24 +22,19 @@ LogoLens 是一个零依赖的 Chrome Manifest V3 扩展。它只在你点击扩
 
 ## 快速安装
 
-### 从 Release 安装
+1. 从 [Releases](https://github.com/everett7623/LogoLens/releases/latest) 下载 `LogoLens-v0.1.0.zip` 并解压，或直接克隆本仓库：
 
-1. 打开 [Releases](https://github.com/everett7623/LogoLens/releases/latest)，下载 `LogoLens-v0.0.1.zip`。
-2. 解压 ZIP 文件。
-3. 在 Chrome 地址栏打开 `chrome://extensions/`。
-4. 开启右上角的“开发者模式”。
-5. 点击“加载已解压的扩展程序”，选择解压后的目录。
-6. 建议将 LogoLens 固定到浏览器工具栏。
+   ```bash
+   git clone https://github.com/everett7623/LogoLens.git
+   ```
 
-### 从源码安装
+2. 在 Chrome 地址栏打开 `chrome://extensions/`，开启右上角的“开发者模式”。
+3. 点击“加载已解压的扩展程序”，选择解压后的目录或仓库根目录。
+4. 建议将 LogoLens 固定到浏览器工具栏。
 
-```bash
-git clone https://github.com/everett7623/LogoLens.git
-```
+> Chrome 不允许未上架的扩展直接从 ZIP 运行，必须先解压再安装。
 
-然后在 `chrome://extensions/` 中加载仓库根目录。
-
-> Chrome 不允许未上架的扩展直接从 ZIP 运行，必须先解压并通过“加载已解压的扩展程序”安装。
+分步详解与卸载说明见[使用指南](docs/USAGE.md)。
 
 ## 使用方法
 
@@ -55,11 +51,13 @@ git clone https://github.com/everett7623/LogoLens.git
 | 类别 | 识别来源 |
 | --- | --- |
 | Logo | 图片的 `alt`、`class`、`id`，页头与导航区域，主页链接内图片 |
-| 内嵌图形 | 页头、导航及 Logo 相关节点中的可见 SVG |
+| 内嵌图形 | 页头、导航及 Logo 相关节点中的可见 SVG，含 `<use>` 引用的同页 sprite |
+| CSS 背景 | 品牌与导航节点上的 `background-image` |
 | 结构化数据 | Schema.org / JSON-LD 中的 `logo` 与 `image` |
 | 社交图片 | Open Graph 与 Twitter Card 图片 |
 | 网站图标 | Favicon、Apple Touch Icon、Mask Icon、Fluid Icon |
 | 应用图标 | Web App Manifest 的 `icons` 声明 |
+| Shadow DOM | 开放 shadow root 内的上述全部来源 |
 
 LogoLens 会对地址进行规范化和去重，优先展示 Logo 与较大尺寸资源，并将单次扫描结果限制在合理数量内。
 
@@ -87,6 +85,8 @@ LogoLens 会对地址进行规范化和去重，优先展示 Logo 与较大尺�
 
 - Chrome 内部页面、Chrome Web Store 等受保护页面不允许扩展注入脚本。
 - 页面未使用可识别的语义、属性或结构时，部分 Logo 可能无法自动发现。
+- 封闭（`closed`）shadow root 与 Canvas 绘制的图形无法读取。
+- 引用外部 sprite 文件（如 `sprite.svg#icon`）的内嵌 SVG 无法离线还原，会被跳过。
 - 远程服务器的防盗链、鉴权或跨域限制可能导致预览或下载失败。
 - 动态加载资源出现较晚时，可等待页面稳定后点击重新扫描。
 
@@ -125,7 +125,7 @@ node --check popup.js
 
 ## 版本与更新
 
-当前版本：`0.0.1`
+当前版本：`0.1.0`
 
 - [更新日志](CHANGELOG.md)
 - [所有 Releases](https://github.com/everett7623/LogoLens/releases)

@@ -1,31 +1,36 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
+完整开发规范见 [CLAUDE.md](CLAUDE.md)。本文件只保留最小必要信息，避免两处描述漂移；两者冲突时以 CLAUDE.md 为准。
 
-LogoLens is a dependency-free Chrome Manifest V3 extension with a flat layout. `manifest.json` defines permissions, icons, the popup, and About page. `popup.html`, `popup.css`, and `popup.js` implement the UI and in-memory state. `extractor.js` contains the injected `extractAssets()` function, which discovers logos, favicons, inline SVGs, social images, and web-manifest icons. `options.html` and `privacy.html` reuse popup styles. Static icons live in `icons/`; documentation is in `README.md` and `PRIVACY.md`.
+## 项目性质
 
-## Build, Test, and Development Commands
+LogoLens 是零依赖的 Chrome Manifest V3 扩展，采用扁平目录结构和原生 HTML/CSS/JavaScript。`manifest.json` 定义权限、图标、popup 与 About 页；`popup.html`/`popup.css`/`popup.js` 实现界面与内存状态；`extractor.js` 提供被注入的 `extractAssets()`；`options.html` 与 `privacy.html` 复用 popup 样式。没有后端、包管理器、构建步骤、linter 或测试框架。
 
-There is no package manager, build step, linter, or automated test command. Develop directly from the checked-out files.
+除非仓库明确采纳，否则不要引入 npm 工作流。
 
-- `python -m json.tool manifest.json > $null` validates manifest JSON in PowerShell.
-- Open `chrome://extensions/`, enable Developer mode, choose **Load unpacked**, and select this repository root.
-- After edits, click **Reload** on the extension card and reopen the popup. Browser refresh alone does not reload extension code.
+## 校验与验证
 
-Do not introduce an npm-based workflow unless the repository explicitly adopts one.
+```bash
+node --check extractor.js
+node --check popup.js
+# PowerShell 下把 /dev/null 换成 $null
+python -m json.tool manifest.json > /dev/null
+```
 
-## Coding Style & Naming Conventions
+功能验证走 Chrome 未打包扩展流程：打开 `chrome://extensions/`，开启开发者模式，选择「加载已解压的扩展程序」并选中仓库根目录。改动后在扩展卡片点击「重新加载」并重开 popup，仅刷新网页不会重载扩展代码。
 
-Use two-space indentation in HTML, CSS, JavaScript, and JSON. Follow the existing JavaScript style: double quotes, semicolons, `camelCase` functions and variables, and `UPPER_SNAKE_CASE` limits. Use descriptive kebab-case CSS classes. Keep DOM selectors in `popup.js` synchronized with IDs, classes, and the card template in `popup.html`. `extractAssets()` must remain self-contained and return only values serializable by `chrome.scripting.executeScript()`.
+行为变更后需在真实 HTTP(S) 页面手工验证：首次与重复扫描、`all`/`logo`/`favicon` 筛选、单项与批量复制下载、内嵌 SVG 预览、Web App Manifest 图标，以及 Chrome 内部页面的错误提示。改动共享 CSS 后需检查 popup、About 与隐私三个视图。
 
-## Testing Guidelines
+## 代码风格
 
-Manually test on HTTP(S) pages after behavioral changes. Cover initial and repeated scans; all/logo/favicon filters; individual and bulk copy/download actions; inline SVG previews; web app manifest icons; and the expected error on Chrome internal pages. Check popup, About, and privacy layouts after shared CSS changes. There is no coverage requirement or test naming convention.
+HTML、CSS、JavaScript 和 JSON 统一两空格缩进。JavaScript 沿用双引号、分号、`camelCase` 函数与变量、`UPPER_SNAKE_CASE` 上限常量；CSS class 用语义化 kebab-case。`popup.js` 中的 DOM selector 必须与 `popup.html` 的 ID、class 和卡片 template 保持同步。`extractAssets()` 必须自包含，返回值必须能被 `chrome.scripting.executeScript()` 结构化克隆。
 
-## Commit & Pull Request Guidelines
+界面文案与扫描器产出的 label 使用简体中文，技术名词保留英文原文。
 
-This checkout contains no Git history, so no project-specific commit convention can be inferred. Use short, imperative commits with a clear scope, for example `fix: preserve inline SVG dimensions`. Pull requests should explain the user-visible change, list manual test pages and results, link relevant issues, and include screenshots for UI changes. Call out any permission or data-handling change explicitly.
+## 提交与 PR
 
-## Security & Release Notes
+使用中文 Conventional Commits，例如 `fix: 修复内嵌 SVG 预览空白`。PR 需说明用户可见的变化，列出手工验证过的页面与结果，关联相关 issue，UI 改动附截图，并单独指出任何权限或数据处理变更。
 
-Keep permissions minimal and extraction local. If permissions, installation, or data handling changes, update `README.md`, `PRIVACY.md`, and `privacy.html` together. For releases, synchronize the version in `manifest.json` with the version displayed in `options.html`, and retain every icon size referenced by the manifest.
+## 安全与发布
+
+权限保持最小化，提取逻辑保持本地执行。涉及权限、安装步骤或数据处理的改动，必须同步更新 `README.md`、`docs/USAGE.md`、`PRIVACY.md` 和 `privacy.html`。发布时同步 `manifest.json`、`options.html`、`README.md`、`docs/USAGE.md` 中的版本号并追加 `CHANGELOG.md` 条目，保留 manifest 引用的全部图标尺寸。

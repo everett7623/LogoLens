@@ -1,6 +1,6 @@
 # LogoLens 使用指南
 
-本文介绍 LogoLens `0.0.1` 的安装、日常使用、下载规则和常见问题。
+本文介绍 LogoLens `0.1.0` 的安装、日常使用、下载规则和常见问题。
 
 ## 运行要求
 
@@ -15,7 +15,7 @@ LogoLens 不需要账号、登录、后端服务或单独配置。
 ### 安装 Release 版本
 
 1. 进入项目的 [Releases](https://github.com/everett7623/LogoLens/releases/latest) 页面。
-2. 下载 `LogoLens-v0.0.1.zip`。
+2. 下载 `LogoLens-v0.1.0.zip`。
 3. 将 ZIP 解压到一个长期保留的目录。安装后不要移动或删除该目录。
 4. 在 Chrome 地址栏输入 `chrome://extensions/`。
 5. 开启右上角的“开发者模式”。
@@ -41,16 +41,9 @@ git clone https://github.com/everett7623/LogoLens.git
 3. 弹窗会显示当前页面标题、域名和资源总数。
 4. 扫描完成后，结果默认按 Logo 优先、尺寸由大到小排列。
 
-LogoLens 会寻找以下内容：
+扫描覆盖的全部资源来源见 [README 的识别范围](../README.md#识别范围)。同一资源地址只会保留一次，单次扫描最多展示 60 项。
 
-- 图片标签和页头、导航、主页链接中的 Logo 线索。
-- 可见且尺寸合理的内嵌 SVG。
-- JSON-LD 和 Schema.org 中的 `logo`、`image`。
-- Open Graph 与 Twitter Card 图片。
-- 页面声明的 Favicon、Apple Touch Icon、Mask Icon、Fluid Icon。
-- Web App Manifest 中声明的应用图标。
-
-同一资源地址只会保留一次，单次扫描最多展示 60 项。
+其中内嵌 SVG 有两种情况：引用同页 sprite（`<use href="#icon">`）的 SVG 会把被引用图形一并打包，因此可以正常预览和下载；引用外部 sprite 文件（`sprite.svg#icon`）的 SVG 离开页面后无法还原，会被跳过。
 
 ## 筛选结果
 
@@ -116,7 +109,7 @@ Chrome 会阻止扩展扫描以下页面：
 
 ### 没有找到目标 Logo
 
-等待页面加载完成后重新扫描。如果网站通过 Canvas、CSS 背景、Shadow DOM 或非语义化结构展示 Logo，当前版本可能无法识别。
+等待页面加载完成后重新扫描。CSS 背景图和开放 shadow root 内的资源自 `0.1.0` 起已支持；但网站通过 Canvas 绘制、封闭（`closed`）shadow root，或完全非语义化的结构展示 Logo 时，当前版本仍可能无法识别。
 
 ### 缩略图无法显示
 
