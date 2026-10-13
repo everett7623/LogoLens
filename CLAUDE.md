@@ -40,7 +40,7 @@ manifest.json → action popup.html → popup.js (DOMContentLoaded)
 
 `popup.js` 有两层运行边界：
 
-- **Popup 层**：管理 `state = { assets, filter, site, scanning }`，处理重新扫描、筛选、渲染、复制、预览和下载。
+- **Popup 层**：管理 `state = { assets, filter, site }`，处理重新扫描、筛选、渲染、复制、预览和下载。
 - **注入页面的扫描层**：`extractor.js` 中的 `extractAssets()` 在目标网页上下文运行并读取真实 DOM。它必须保持自包含，不能依赖 popup 作用域的闭包、import 或状态；返回值必须可通过 `chrome.scripting.executeScript()` 克隆。
 
 `scan()` 用模块级单调计数器 `scanVersion` 做竞态守卫：每次扫描先自增并记录本次版本号，`await` 返回后如果 `version !== scanVersion` 就直接丢弃结果，不写 state、不渲染、不复位 `scanning`。连点重新扫描时只有最后一次生效。新增任何异步扫描分支都要沿用这个版本比对，否则旧结果会覆盖新结果。
@@ -53,15 +53,15 @@ manifest.json → action popup.html → popup.js (DOMContentLoaded)
 
 ## 资源提取约束
 
-新增发现来源时，在 `extractAssets()` 内通过其 `add()` helper 登记资源。该 helper 统一处理相对 URL 解析、仅允许 HTTP(S) 或 `data:image` URL、URL 长度上限（远程 8192、`data:` 200000）、去除 fragment 后去重、每类型 120 项配额和资源形状规范化；扫描器收尾阶段统一完成排序和 60 项总量截断。
+新增发现来源时，在 `extractAssets()` 内通过其 `add()` helper 登记资源。该 helper 统一处理相对 URL 解析、仅允许 HTTP(S) 或 `data:image` URL、URL 长度上限（远程 8192、`data:` 200000）、按解析后完整 URL 去重（`#fragment` 指向 sprite 中的不同图形，必须保留）、每类型 120 项配额和资源形状规范化；扫描器收尾阶段统一完成排序和 60 项总量截断。
 
 `add()` 的第一道门禁是 `type in typeCounts`：`typeCounts` 里没有登记的 `type` 会被**静默丢弃**，不报错也不出现在结果中。新增资源类别时必须先在 `typeCounts` 初始值中加入该键，否则整条来源看起来“扫不到东西”。`area` 为 0 时会按类型回填默认权重（logo 100000、favicon 100），直接影响排序位置。`add()` 返回是否真的登记成功，需要连续编号的来源（如内嵌 SVG）必须据此自增计数器，否则被过滤或去重的项会让编号跳号。
 
 当前扫描器汇集 favicon link 与 `/favicon.ico`、JSON-LD/Schema.org、Open Graph/Twitter 元数据、结合 `picture`/`srcset` 的 logo 图片启发式、品牌与导航节点上的 CSS `background-image`、受限的内嵌 SVG，以及带 3 秒中止超时的 Web App Manifest 图标。结果按 logo 优先、面积次序排序。扩展扫描覆盖面时，保留下列全部保护。
 
 - **DOM 遍历范围**：`eachLimited()` 遍历的是模块级 `roots` 数组，由一次广度优先搜索收集 `document` 与所有开放 shadow root，受 50 个根与 3000 个扫描节点双重限制。新增来源只要走 `eachLimited()` 就自动获得 shadow DOM 覆盖；直接调用 `document.querySelectorAll()` 则会漏掉 shadow 内容（`link[rel="manifest"]` 等文档级单例除外）。
-- **内嵌 SVG**：跳过不可见节点、超过 800px 的尺寸和超过 50000 字符的 `outerHTML`，再序列化成 `data:image/svg+xml` URL。由于 `data:` URL 是独立文档，`inlineUseRefs()` 会把 `<use href="#id">` 指向的同页 sprite 节点克隆进副本的 `<defs>`（最多 3 轮，支持 symbol 内部再引用 symbol），并把 `xlink:href` 规范化为 `href`；指向外部 sprite 文件的引用无法离线还原，整个 SVG 直接放弃。内联会增大体积，所以序列化前要再校验一次长度上限。
-- **CSS 背景图**：只取每个节点 `backgroundImage` 中的第一个 `url()`，跳过不可见节点，并丢弃任一边超过 `MAX_BG_DIM`（400px）的盒子——大盒子几乎都是横幅或装饰背景，且其面积会把噪音顶到排序最前。该来源用 `getComputedStyle()`，因此受 `MAX_NODES_PER_SOURCE`（200）约束以控制成本。
+- **内嵌 SVG**：跳过不可见节点、超过 800px 的尺寸和超过 50000 字符的 `outerHTML`，再序列化成 `data:image/svg+xml` URL。由于 `data:` URL 是独立文档，`inlineUseRefs()` 会把 `<use href="#id">` 指向的同页 sprite 节点克隆进副本的 `<defs>`（循环处理到无新增引用为止，支持 symbol 内部任意深度再引用；每个 id 至多内联一次、总量上限 32，超出按无法还原放弃整个 SVG），空引用直接跳过，并把 `xlink:href` 规范化为 `href`；指向外部 sprite 文件的引用无法离线还原，整个 SVG 直接放弃。内联会增大体积，所以序列化前要再校验一次长度上限。
+- **CSS 背景图**：逐层登记节点 `backgroundImage` 中的全部 `url()`（重复由 `add()` 去重兜底），跳过不可见节点，并丢弃任一边超过 `MAX_BG_DIM`（400px）的盒子——大盒子几乎都是横幅或装饰背景，且其面积会把噪音顶到排序最前。该来源用 `getComputedStyle()`，因此受 `MAX_NODES_PER_SOURCE`（200）约束以控制成本。
 
 新增资源类别时，如需独立筛选页签和计数，应同步补充对应 UI；同时验证现有通用渲染、badge 与下载命名是否满足该类别的展示和命名需求。
 
@@ -81,7 +81,7 @@ manifest.json → action popup.html → popup.js (DOMContentLoaded)
 
 两条下载路径的命名和交互不同，改动其一时要同时确认另一条：
 
-- 单项下载：`saveAs: true`，扁平命名 `LogoLens/{host}-{type}-{序号}.{ext}`。
+- 单项下载：`saveAs: true`，按站点分目录 `LogoLens/{host}/{type}-{序号}.{ext}`。
 - 批量下载：`saveAs: false`，按站点分目录 `LogoLens/{host}/{type}-{序号}.{ext}`，逐项串行创建并统计失败数。
 
 扩展名由 `fileType()` 从 `data:` MIME 或 URL 后缀推断，命中白名单外一律回落为 `PNG`；`safeName()` 会把 host 规范化为 `[a-z0-9.-]`。命名规则在 `docs/USAGE.md` 中有面向用户的说明，修改后需同步。卡片预览图固定 `referrerPolicy = "no-referrer"`，加载失败时给卡片加 `image-error` class 而不是移除卡片。

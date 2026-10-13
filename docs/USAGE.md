@@ -68,10 +68,10 @@ git clone https://github.com/everett7623/LogoLens.git
 
 ### 单项下载
 
-点击资源卡片上的“下载”，Chrome 会显示保存位置选择框。默认文件名格式为：
+点击资源卡片上的“下载”，Chrome 会显示保存位置选择框。默认路径格式为：
 
 ```text
-LogoLens/{域名}-{类别}-{序号}.{扩展名}
+LogoLens/{域名}/{类别}-{序号}.{扩展名}
 ```
 
 ### 批量下载

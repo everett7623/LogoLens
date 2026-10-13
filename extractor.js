@@ -8,7 +8,7 @@ async function extractAssets() {
   const MAX_SVG_NODES = MAX_ASSETS;
   const MAX_SVG_EL_LENGTH = 50000;
   const MAX_SVG_DIM = 800;
-  const MAX_SVG_USE_PASSES = 3;
+  const MAX_SVG_INLINE_TARGETS = 32;
   const MAX_BG_DIM = 400;
   const MAX_SHADOW_ROOTS = 50;
   const MAX_SHADOW_SCAN_NODES = 3000;
@@ -52,7 +52,7 @@ async function extractAssets() {
       try { nodes = root.querySelectorAll(selector); } catch { continue; }
       for (const node of nodes) {
         if (index >= limit) return;
-        callback(node, index);
+        callback(node);
         index += 1;
       }
     }
@@ -110,7 +110,8 @@ async function extractAssets() {
     if (!resolved || !/^https?:|^data:image\//i.test(resolved)) return false;
     const maxLength = resolved.startsWith("data:") ? MAX_DATA_URL_LENGTH : MAX_REMOTE_URL_LENGTH;
     if (resolved.length > maxLength) return false;
-    const key = resolved.split("#")[0];
+    // 完整 URL 作键：sprite 引用的 #fragment 指向不同图形，不能在去重时合并。
+    const key = resolved;
     if (seen.has(key)) return false;
     seen.add(key);
     typeCounts[type] += 1;
@@ -150,7 +151,8 @@ async function extractAssets() {
       return;
     }
     if (!value || typeof value !== "object") return;
-    const url = [value.url, value.contentUrl, value["@id"]].find((item) => typeof item === "string");
+    // @id 是资源标识符而非图片地址，会产出预览必失败的页面内引用，不作候选。
+    const url = [value.url, value.contentUrl].find((item) => typeof item === "string");
     if (url) add(url, "logo", label);
   };
 
@@ -215,16 +217,17 @@ async function extractAssets() {
       if (!isVisible(style)) return;
       const raw = style.backgroundImage;
       if (!raw || raw === "none") return;
-      const match = raw.match(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)\s]*))\s*\)/i);
-      const value = ((match && (match[1] || match[2] || match[3])) || "").trim();
-      if (!value) return;
       const box = node.getBoundingClientRect();
       if (box.width <= 0 || box.height <= 0) return;
       // 过大的盒子通常是横幅或装饰背景，不是 logo。
       if (box.width > MAX_BG_DIM || box.height > MAX_BG_DIM) return;
       const width = Math.round(box.width);
       const height = Math.round(box.height);
-      add(value, "logo", "CSS 背景 Logo", `${width} × ${height}`, width * height);
+      // 逐层登记全部 url()，logo 可能藏在装饰层之后的某一层。
+      for (const match of raw.matchAll(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)\s]+))\s*\)/gi)) {
+        const value = ((match[1] || match[2] || match[3]) || "").trim();
+        if (value) add(value, "logo", "CSS 背景 Logo", `${width} × ${height}`, width * height);
+      }
     } catch {}
   });
 
@@ -233,21 +236,24 @@ async function extractAssets() {
     const source = root && typeof root.getElementById === "function" ? root : document;
     const inlined = new Set();
     let defs = null;
-    for (let pass = 0; pass < MAX_SVG_USE_PASSES; pass += 1) {
+    // 每个 id 至多内联一次，循环按新增收敛，保证副本内不残留悬空引用。
+    while (true) {
       let added = 0;
       for (const use of clone.querySelectorAll("use")) {
         const raw = (use.getAttribute("href") || use.getAttribute("xlink:href") || "").trim();
+        // 空引用渲染为空白，跳过即可，不必放弃整个 SVG。
+        if (!raw) continue;
         // 指向外部 sprite 文件的引用无法内联，整个 SVG 放弃。
         if (!raw.startsWith("#")) return false;
         const id = raw.slice(1);
-        if (!id) return false;
+        if (!id) continue;
         use.setAttribute("href", raw);
         use.removeAttributeNS(XLINK_NS, "href");
         if (inlined.has(id)) continue;
-        inlined.add(id);
         let escaped;
         try { escaped = `#${CSS.escape(id)}`; } catch { return false; }
         if (clone.id === id || clone.querySelector(escaped)) continue;
+        if (inlined.size >= MAX_SVG_INLINE_TARGETS) return false;
         const target = source.getElementById(id);
         if (!target || target.namespaceURI !== SVG_NS) return false;
         if (!defs) {
@@ -255,11 +261,11 @@ async function extractAssets() {
           clone.insertBefore(defs, clone.firstChild);
         }
         defs.append(target.cloneNode(true));
+        inlined.add(id);
         added += 1;
       }
-      if (!added) break;
+      if (!added) return true;
     }
-    return true;
   };
 
   const svgSelectors = [

@@ -196,7 +196,7 @@ async function downloadAsset(asset, index, button) {
   try {
     await chrome.downloads.download({
       url: asset.url,
-      filename: `LogoLens/${safeName(state.site?.host || "website")}-${asset.type}-${index + 1}.${fileType(asset.url).toLowerCase()}`,
+      filename: `LogoLens/${safeName(state.site?.host || "website")}/${asset.type}-${index + 1}.${fileType(asset.url).toLowerCase()}`,
       saveAs: true
     });
     showNotice("下载任务已创建。");
