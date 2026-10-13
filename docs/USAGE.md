@@ -1,6 +1,6 @@
 # LogoLens 使用指南
 
-本文介绍 LogoLens `0.1.0` 的安装、日常使用、下载规则和常见问题。
+本文介绍 LogoLens `0.1.1` 的安装、日常使用、下载规则和常见问题。
 
 ## 运行要求
 
@@ -15,7 +15,7 @@ LogoLens 不需要账号、登录、后端服务或单独配置。
 ### 安装 Release 版本
 
 1. 进入项目的 [Releases](https://github.com/everett7623/LogoLens/releases/latest) 页面。
-2. 下载 `LogoLens-v0.1.0.zip`。
+2. 下载 `LogoLens-v0.1.1.zip`。
 3. 将 ZIP 解压到一个长期保留的目录。安装后不要移动或删除该目录。
 4. 在 Chrome 地址栏输入 `chrome://extensions/`。
 5. 开启右上角的“开发者模式”。

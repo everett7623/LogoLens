@@ -22,7 +22,7 @@ LogoLens 是一个零依赖的 Chrome Manifest V3 扩展。它只在你点击扩
 
 ## 快速安装
 
-1. 从 [Releases](https://github.com/everett7623/LogoLens/releases/latest) 下载 `LogoLens-v0.1.0.zip` 并解压，或直接克隆本仓库：
+1. 从 [Releases](https://github.com/everett7623/LogoLens/releases/latest) 下载 `LogoLens-v0.1.1.zip` 并解压，或直接克隆本仓库：
 
    ```bash
    git clone https://github.com/everett7623/LogoLens.git
@@ -125,7 +125,7 @@ node --check popup.js
 
 ## 版本与更新
 
-当前版本：`0.1.0`
+当前版本：`0.1.1`
 
 - [更新日志](CHANGELOG.md)
 - [所有 Releases](https://github.com/everett7623/LogoLens/releases)
