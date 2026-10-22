@@ -22,14 +22,14 @@ LogoLens 是一个零依赖的 Chrome Manifest V3 扩展。它只在你点击扩
 
 ## 快速安装
 
-1. 从 [Releases](https://github.com/everett7623/LogoLens/releases/latest) 下载 `LogoLens-v0.1.1.zip` 并解压，或直接克隆本仓库：
+1. 从 [Releases](https://github.com/everett7623/LogoLens/releases/latest) 下载 `logolens-0.1.1-chrome.zip` 并解压，或直接克隆本仓库：
 
    ```bash
    git clone https://github.com/everett7623/LogoLens.git
    ```
 
 2. 在 Chrome 地址栏打开 `chrome://extensions/`，开启右上角的“开发者模式”。
-3. 点击“加载已解压的扩展程序”，选择解压后的目录或仓库根目录。
+3. 点击“加载已解压的扩展程序”，选择解压后的目录、仓库根目录，或本地打包产出的 `dist/chrome-mv3`。
 4. 建议将 LogoLens 固定到浏览器工具栏。
 
 > Chrome 不允许未上架的扩展直接从 ZIP 运行，必须先解压再安装。
@@ -92,7 +92,7 @@ LogoLens 会对地址进行规范化和去重，优先展示 Logo 与较大尺�
 
 ## 项目结构
 
-零依赖扁平布局：Chrome「加载已解压」直接选仓库根目录。根目录只保留扩展入口与契约文件；说明进 `docs/`；`*.zip` / `dist` / `.output` 等产物不进 Git。
+零依赖扁平布局：日常开发时 Chrome「加载已解压」可选仓库根目录。根目录只保留扩展入口与契约文件；说明进 `docs/`；`dist/` 为本地打包产物（不进 Git）。
 
 ```text
 .
@@ -100,10 +100,11 @@ LogoLens 会对地址进行规范化和去重，优先展示 Logo 与较大尺�
 │   ├── USAGE.md
 │   └── images/
 ├── icons/                # manifest 引用的 16/32/48/128
+├── pack.ps1              # 生成 dist/chrome-mv3 与发布 zip
 ├── .gitignore
-├── AGENTS.md             # agent 精简指引（指向 CLAUDE.md）
+├── AGENTS.md
 ├── CHANGELOG.md
-├── CLAUDE.md             # 完整开发规范
+├── CLAUDE.md
 ├── LICENSE
 ├── PRIVACY.md
 ├── README.md
@@ -112,6 +113,18 @@ LogoLens 会对地址进行规范化和去重，优先展示 Logo 与较大尺�
 ├── popup.html / popup.css / popup.js
 ├── options.html
 └── privacy.html
+```
+
+本地打包（对齐 WAMofa 的 dist 布局，产物不进 Git）：
+
+```text
+dist/
+├── chrome-mv3/                 # 可加载的解压目录
+└── logolens-<version>-chrome.zip
+```
+
+```powershell
+.\pack.ps1
 ```
 
 ## 本地开发

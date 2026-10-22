@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 LogoLens 是零依赖的 Chrome Manifest V3 扩展：使用原生 HTML、CSS、JavaScript 和静态 PNG 图标，从当前活动网页中提取 logo、favicon、内嵌 SVG、CSS 背景图、社交图片和 Web App Manifest 图标。没有后端、包管理器、构建工具、linter、测试框架或 CI 配置。
 
-仓库保持扁平干净树：根目录只放 `manifest.json`、popup/options/privacy 入口、`extractor.js`、`icons/` 与契约文档；使用说明与截图在 `docs/`。不要引入 `src/`、WXT 或包管理器布局，也不要往根目录提交发布总结、临时报告、zip 或构建产物（见 `.gitignore`）。结构树见 [README.md](README.md)「项目结构」。
+仓库保持扁平干净树：根目录只放 `manifest.json`、popup/options/privacy 入口、`extractor.js`、`icons/`、`pack.ps1` 与契约文档；使用说明与截图在 `docs/`。不要引入 `src/`、WXT 或包管理器布局，也不要往根目录提交发布总结、临时报告、zip 或构建产物（见 `.gitignore`）。结构树见 [README.md](README.md)「项目结构」。
+
+发布打包：在仓库根执行 `.\pack.ps1`，产出 `dist/chrome-mv3/`（可加载目录）与 `dist/logolens-<version>-chrome.zip`；`dist/` 仅本地/Release 使用，不进 Git。
 
 本仓库没有 `build`、`lint`、`test` 脚本；不要臆造 `npm`、`pnpm` 或其他 CLI 工作流。可用的静态校验只有下面三条，改动对应文件后手动执行：
 
@@ -94,4 +96,4 @@ manifest.json → action popup.html → popup.js (DOMContentLoaded)
 
 资源提取在本地完成，不持久化或上传浏览数据；扫描器仅会尝试读取当前站点声明的 Web App Manifest 以发现图标。任何涉及行为、权限、安装步骤或数据处理的修改，都必须与 `README.md`、`docs/USAGE.md`、`PRIVACY.md` 和 `privacy.html` 的说明保持一致（权限表在 `README.md`、`PRIVACY.md`、`privacy.html` 中重复了三份）。
 
-版本号在多处硬编码，发布升版时需要全部更新：`manifest.json` 的 `version`、`options.html` 的版本行、`README.md`（当前版本与 `LogoLens-v<版本>.zip` 下载名）、`docs/USAGE.md`（开篇版本与同名 zip），并在 `CHANGELOG.md` 追加条目与底部链接。用 `grep -rn "<上一版本号>"` 自查是否有遗漏。保留 `icons/` 下 manifest 直接引用的 16、32、48、128 像素图标文件。
+版本号在多处硬编码，发布升版时需要全部更新：`manifest.json` 的 `version`、`options.html` 的版本行、`README.md`（当前版本与 `logolens-<版本>-chrome.zip` 下载名）、`docs/USAGE.md`（开篇版本与同名 zip），并在 `CHANGELOG.md` 追加条目与底部链接。用 `grep -rn "<上一版本号>"` 自查是否有遗漏。保留 `icons/` 下 manifest 直接引用的 16、32、48、128 像素图标文件。发布附件用 `.\pack.ps1` 生成后上传到 GitHub Release。

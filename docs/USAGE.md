@@ -15,12 +15,12 @@ LogoLens 不需要账号、登录、后端服务或单独配置。
 ### 安装 Release 版本
 
 1. 进入项目的 [Releases](https://github.com/everett7623/LogoLens/releases/latest) 页面。
-2. 下载 `LogoLens-v0.1.1.zip`。
+2. 下载 `logolens-0.1.1-chrome.zip`。
 3. 将 ZIP 解压到一个长期保留的目录。安装后不要移动或删除该目录。
 4. 在 Chrome 地址栏输入 `chrome://extensions/`。
 5. 开启右上角的“开发者模式”。
 6. 点击“加载已解压的扩展程序”。
-7. 选择包含 `manifest.json` 的解压目录。
+7. 选择包含 `manifest.json` 的解压目录（若本地执行过 `.\pack.ps1`，也可直接选 `dist/chrome-mv3`）。
 
 安装完成后，可在扩展菜单中将 LogoLens 固定到工具栏。
 
