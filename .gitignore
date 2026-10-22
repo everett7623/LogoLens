@@ -1,1 +1,15 @@
+# 本地发布包
 *.zip
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.log
+
+# 误生成构建物（本仓库无构建步骤，仅作防御）
+dist/
+.output/
+node_modules/

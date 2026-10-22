@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 LogoLens 是零依赖的 Chrome Manifest V3 扩展：使用原生 HTML、CSS、JavaScript 和静态 PNG 图标，从当前活动网页中提取 logo、favicon、内嵌 SVG、CSS 背景图、社交图片和 Web App Manifest 图标。没有后端、包管理器、构建工具、linter、测试框架或 CI 配置。
 
+仓库保持扁平干净树：根目录只放 `manifest.json`、popup/options/privacy 入口、`extractor.js`、`icons/` 与契约文档；使用说明与截图在 `docs/`。不要引入 `src/`、WXT 或包管理器布局，也不要往根目录提交发布总结、临时报告、zip 或构建产物（见 `.gitignore`）。结构树见 [README.md](README.md)「项目结构」。
+
 本仓库没有 `build`、`lint`、`test` 脚本；不要臆造 `npm`、`pnpm` 或其他 CLI 工作流。可用的静态校验只有下面三条，改动对应文件后手动执行：
 
 ```bash

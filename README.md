@@ -92,19 +92,26 @@ LogoLens 会对地址进行规范化和去重，优先展示 Logo 与较大尺�
 
 ## 项目结构
 
+零依赖扁平布局：Chrome「加载已解压」直接选仓库根目录。根目录只保留扩展入口与契约文件；说明进 `docs/`；`*.zip` / `dist` / `.output` 等产物不进 Git。
+
 ```text
-LogoLens/
-├── manifest.json        # Chrome 扩展配置与权限
-├── popup.html           # 弹窗结构
-├── popup.css            # 弹窗、关于页和隐私页共享样式
-├── popup.js             # 扫描流程、筛选、复制与下载逻辑
-├── extractor.js         # 注入页面的资源发现函数
-├── options.html         # 关于页面
-├── privacy.html         # 扩展内隐私政策页面
-├── icons/               # 扩展图标
-├── docs/                # 使用指南与项目截图
-├── CHANGELOG.md         # 版本更新记录
-└── PRIVACY.md           # 仓库隐私政策
+.
+├── docs/                 # 使用说明与截图
+│   ├── USAGE.md
+│   └── images/
+├── icons/                # manifest 引用的 16/32/48/128
+├── .gitignore
+├── AGENTS.md             # agent 精简指引（指向 CLAUDE.md）
+├── CHANGELOG.md
+├── CLAUDE.md             # 完整开发规范
+├── LICENSE
+├── PRIVACY.md
+├── README.md
+├── manifest.json
+├── extractor.js
+├── popup.html / popup.css / popup.js
+├── options.html
+└── privacy.html
 ```
 
 ## 本地开发
